@@ -1,7 +1,9 @@
 import { Modal, TextField, Typography, Box, FormControl, InputLabel, Select, MenuItem, Button } from '@mui/material';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import ControlPointIcon from '@mui/icons-material/ControlPoint';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import { restApi } from '../../../apis';
+import { snackBar } from '../../../utils/SnackBar';
 
 interface IConModalProps {
   open: boolean;
@@ -22,7 +24,81 @@ const ConModal = (props: IConModalProps) => {
 
   const [publish, setPublish] = useState<{ [key: string]: any }>({});
   const [env, setEnv] = useState<{ [key: string]: any }>({});
-  const [data, setData] = useState<{ [key: string]: any }>({ publish: [], env: [] });
+  const [data, setData] = useState<{ [key: string]: any }>({ publish: [], env: [], mountList: [] });
+  const [mount, setMount] = useState<{ [key: string]: any }>({ type: 0, source: '', target: '' });
+  const [volume, setVolume] = useState<{ [key: string]: any }[]>([]);
+  const [image, setImage] = useState<{ [key: string]: any }[]>([]);
+  const [snack, setSnack] = useState<boolean>(false);
+
+  useEffect(() => {
+    getVolList();
+    getImageList();
+  }, []);
+
+  const getVolList = async () => {
+    await restApi
+      .get('/docker/volume')
+      .then((res) => {
+        setVolume(res.data.data);
+      })
+      .catch((err) => {
+        snackBar({
+          open: true,
+          setOpen: setSnack,
+          message: '서버 오류입니다. 잠시후 다시 시도해주세요.',
+          severity: 'error',
+        });
+      });
+  };
+
+  const getImageList = async () => {
+    await restApi
+      .get('/docker/image/local')
+      .then((res) => {
+        setImage(res.data.data);
+      })
+      .catch((err) => {
+        snackBar({
+          open: true,
+          setOpen: setSnack,
+          message: '서버 오류입니다. 잠시후 다시 시도해주세요.',
+          severity: 'error',
+        });
+      });
+  };
+
+  let resultObject: { [key: string]: string } = {};
+
+  const createContainer = async () => {
+    data.env.forEach((item: any) => {
+      const [key, value] = item.split(':'); // 문자열을 ':'를 기준으로 분리
+      resultObject[key] = value;
+    });
+    // console.log(resultObject);
+
+    await restApi
+      .post('/docker/container', { ...data, env: resultObject })
+      .then((res) => {
+        props.setOpen(false);
+        snackBar({
+          open: true,
+          setOpen: setSnack,
+          message: '컨테이너등록에 성공했습니다.',
+          severity: 'success',
+        });
+      })
+      .catch((err) => {
+        snackBar({
+          open: true,
+          setOpen: setSnack,
+          message: '서버 오류입니다. 잠시후 다시 시도해주세요.',
+          severity: 'error',
+        });
+      });
+  };
+
+
+
 
   return (
     <Modal
@@ -40,17 +116,22 @@ const ConModal = (props: IConModalProps) => {
             <Typography fontWeight={'bold'} width={'140px'}>
               ContainerName
             </Typography>
-            <TextField id="containerName" variant="outlined" />
+            <TextField
+              id="containerName"
+              variant="outlined"
+              onChange={(e) => setData({ ...data, containerName: e.target.value })}
+            />
           </Box>
           <Box display={'flex'} flexDirection={'row'} alignItems={'center'}>
             <Typography fontWeight={'bold'} width={'140px'}>
               Image
             </Typography>
             <FormControl>
-              <Select labelId="demo-simple-select-label" id="demo-simple-select" defaultValue={10}>
-                <MenuItem value={10}>Ten</MenuItem>
-                <MenuItem value={20}>Twenty</MenuItem>
-                <MenuItem value={30}>Thirty</MenuItem>
+              <Select onChange={(e) => setData({ ...data, imageId: e.target.value })}>
+                {image.length !== 0 &&
+                  image?.map((item: any) => {
+                    return <MenuItem value={item.inspect.imageId}>{item.imageName}</MenuItem>;
+                  })}
               </Select>
             </FormControl>
           </Box>
@@ -136,7 +217,7 @@ const ConModal = (props: IConModalProps) => {
                       onClick={() => {
                         setData((prev) => ({
                           ...prev,
-                          publish: prev.publish.filter((port: string) => port !== item),
+                          publishList: prev.publish.filter((port: string) => port !== item),
                         }));
                       }}
                     />
@@ -212,25 +293,70 @@ const ConModal = (props: IConModalProps) => {
                 ))}
             </Box>
           </Box>
+
           <Box display={'flex'} flexDirection={'row'} alignItems={'center'}>
             <Typography fontWeight={'bold'} width={'140px'}>
-              mount
+              MountList
             </Typography>
-            <FormControl>
-              <Select
-                labelId="demo-simple-select-label"
-                id="demo-simple-select"
-                defaultValue={10}
-                // onChange={handleChange}
-              >
-                <MenuItem value={10}>Ten</MenuItem>
-                <MenuItem value={20}>Twenty</MenuItem>
-                <MenuItem value={30}>Thirty</MenuItem>
-              </Select>
-            </FormControl>
+            <Select value={mount.type} onChange={(e) => setMount({ ...mount, type: e.target.value })}>
+              <MenuItem value={0}>volume</MenuItem>
+              <MenuItem value={1}>bind</MenuItem>
+              <MenuItem value={2}>tmpfs</MenuItem>
+            </Select>
+            <Select
+              value={mount.source}
+              onChange={(e) =>
+                setMount({
+                  ...mount,
+                  source: e.target.value,
+                  target: volume.filter((item: any) => item.volumeName === e.target.value)[0].mountPoint,
+                })
+              }
+            >
+              {volume?.length !== 0 &&
+                volume?.map((item: any) => <MenuItem value={item.volumeName}>{item.volumeName}</MenuItem>)}
+            </Select>
+            <ControlPointIcon
+              onClick={() => {
+                setData({ ...data, mountList: [...data.mountList, mount] });
+                setMount({ type: 0, source: '', target: '' });
+              }}
+            />
+          </Box>
+          <Box display={'flex'} flexDirection={'row'} alignItems={'center'}>
+            <Typography fontWeight={'bold'} width={'140px'}></Typography>
+            <Box
+              sx={{
+                maxHeight: 120,
+                overflowY: 'auto',
+                width: 300,
+              }}
+            >
+              {data?.mountList &&
+                data?.mountList?.map((item: any) => (
+                  <Typography
+                    sx={{
+                      mb: 1,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    {item.type} : {item.source} : {item.target}
+                    <RemoveCircleOutlineIcon
+                      onClick={() => {
+                        setData((prev) => ({
+                          ...prev,
+                          env: prev.env.filter((env: string) => env !== item),
+                        }));
+                      }}
+                    />
+                  </Typography>
+                ))}
+            </Box>
           </Box>
         </Box>
-        <Button fullWidth variant="contained" sx={{ mt: 2 }}>
+        <Button fullWidth variant="contained" sx={{ mt: 2 }} onClick={() => createContainer()}>
           생성하기
         </Button>
       </Box>

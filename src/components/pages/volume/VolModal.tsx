@@ -2,6 +2,7 @@ import { Modal, TextField, Typography, Box, FormControl, InputLabel, Select, Men
 import { useState } from 'react';
 import ControlPointIcon from '@mui/icons-material/ControlPoint';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import { restApi } from '../../../apis';
 
 interface IVolModalProps {
   open: boolean;
@@ -20,6 +21,20 @@ const VolModal = (props: IVolModalProps) => {
     p: 4,
   };
 
+  const [volume, setVolume] = useState<{ [key: string]: any }>({});
+
+  const createVolume = async () => {
+    await restApi
+      .post('/docker/volume', volume)
+      .then((res) => {
+        console.log(res);
+        props.setOpen(false);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  };
+
   return (
     <Modal
       open={props.open}
@@ -36,10 +51,15 @@ const VolModal = (props: IVolModalProps) => {
             <Typography fontWeight={'bold'} width={'140px'}>
               VolumeName
             </Typography>
-            <TextField id="containerName" variant="outlined" sx={{ width: '100%' }} />
+            <TextField
+              id="containerName"
+              variant="outlined"
+              sx={{ width: '100%' }}
+              onChange={(e) => setVolume({ volumeId: e.target.value })}
+            />
           </Box>
         </Box>
-        <Button fullWidth variant="contained" sx={{ mt: 2 }}>
+        <Button fullWidth variant="contained" sx={{ mt: 2 }} onClick={() => createVolume()}>
           생성하기
         </Button>
       </Box>

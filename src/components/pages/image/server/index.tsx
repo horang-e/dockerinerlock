@@ -25,10 +25,12 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import ImgModal from '../ImgModal';
+import { WsProps } from '../../../../navigations/BaseLayout';
+
 
 type Props = {};
 
-const Index = (props: Props) => {
+const Index = (props: WsProps) => {
   const [deleteOn, setDeleteOn] = React.useState(false);
   const [modalOpen, setModalOpen] = React.useState<boolean>(false);
 
@@ -50,23 +52,9 @@ const Index = (props: Props) => {
           <TableCell align="right">{row.containerCount}</TableCell>
           <TableCell align="right">{row.imageVersion}</TableCell>
           <TableCell align="right">
-            {deleteOn ? (
-              <IconButton edge="end" aria-label="delete">
-                <DeleteIcon />
-              </IconButton>
-            ) : (
-              <>
-                <IconButton edge="end" aria-label="play">
-                  <PlayArrowIcon />
-                </IconButton>
-                <IconButton edge="end" aria-label="pause">
-                  <PauseIcon />
-                </IconButton>
-                <IconButton edge="end" aria-label="refresh">
-                  <RefreshIcon />
-                </IconButton>
-              </>
-            )}
+            <IconButton edge="end" aria-label="delete">
+              <DeleteIcon />
+            </IconButton>
           </TableCell>
         </TableRow>
         <TableRow>
@@ -174,15 +162,13 @@ const Index = (props: Props) => {
   ];
 
   return (
-    <div>
-      <Button onClick={() => setDeleteOn(!deleteOn)} variant="contained">
-        {deleteOn ? '완료' : '삭제하기'}
-      </Button>
+    <Box height={'90%'}>
+
       <Button onClick={() => setModalOpen(true)} variant="contained">
         생성하기
       </Button>
-      <TableContainer component={Paper}>
-        <Table aria-label="collapsible table">
+      <TableContainer component={Paper} sx={{ maxHeight: 740, height: '90%' }}>
+        <Table aria-label="collapsible table" stickyHeader>
           <TableHead>
             <TableRow>
               <TableCell>
@@ -202,7 +188,7 @@ const Index = (props: Props) => {
         </Table>
       </TableContainer>
       <ImgModal open={modalOpen} setOpen={setModalOpen} />
-    </div>
+    </Box>
   );
 };
 

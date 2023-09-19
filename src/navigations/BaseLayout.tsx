@@ -6,15 +6,19 @@ import Volume from '../components/pages/volume';
 import Local from '../components/pages/image/local';
 import Server from '../components/pages/image/server';
 
-const BaseLayout = () => {
+export interface WsProps {
+  ws: React.MutableRefObject<any>;
+}
+
+const BaseLayout = (props: WsProps) => {
   return (
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/volume" element={<Volume />} />
-          <Route path="/image/local" element={<Local />} />
-          <Route path="/image/server" element={<Server />} />
+          <Route path="/" element={<Home ws={props.ws} />} />
+          <Route path="/volume" element={<Volume  ws={props.ws}/>} />
+          <Route path="/image/local" element={<Local  ws={props.ws}/>} />
+          <Route path="/image/server" element={<Server  ws={props.ws}/>} />
         </Route>
       </Routes>
     </BrowserRouter>

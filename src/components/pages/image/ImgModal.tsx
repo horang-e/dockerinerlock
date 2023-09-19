@@ -2,6 +2,7 @@ import { Modal, TextField, Typography, Box, FormControl, InputLabel, Select, Men
 import { useState } from 'react';
 import ControlPointIcon from '@mui/icons-material/ControlPoint';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import { restApi } from '../../../apis';
 
 interface IImgModalProps {
   open: boolean;
@@ -20,6 +21,20 @@ const ImgModal = (props: IImgModalProps) => {
     p: 4,
   };
 
+  const [image, setImage] = useState<{ [key: string]: any }>({});
+
+  const pullImage = async () => {
+    await restApi
+      .post('/docker/image/local', image)
+      .then((res) => {
+        props.setOpen(false);
+        console.log(res);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  };
+
   return (
     <Modal
       open={props.open}
@@ -36,16 +51,26 @@ const ImgModal = (props: IImgModalProps) => {
             <Typography fontWeight={'bold'} width={'140px'}>
               ImageName
             </Typography>
-            <TextField id="containerName" variant="outlined" sx={{ width: '100%' }} />
+            <TextField
+              id="imageName"
+              variant="outlined"
+              sx={{ width: '100%' }}
+              onChange={(e) => setImage({ ...image, imageName: e.target.value })}
+            />
           </Box>
           <Box display={'flex'} flexDirection={'row'} alignItems={'center'}>
             <Typography fontWeight={'bold'} width={'140px'}>
               ImageVersion
             </Typography>
-            <TextField id="containerName" variant="outlined" sx={{ width: '100%' }} />
+            <TextField
+              id="imageVersion"
+              variant="outlined"
+              sx={{ width: '100%' }}
+              onChange={(e) => setImage({ ...image, imageVersion: e.target.value })}
+            />
           </Box>
         </Box>{' '}
-        <Button fullWidth variant="contained" sx={{ mt: 2 }}>
+        <Button fullWidth variant="contained" sx={{ mt: 2 }} onClick={() => pullImage()}>
           생성하기
         </Button>
       </Box>
